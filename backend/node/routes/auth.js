@@ -111,7 +111,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const resetUrl =
-  `http://localhost:3000/reset.html?token=${token}`;
+  `${process.env.APP_URL}/reset.html?token=${token}`;
 
 await transporter.sendMail({
 from: process.env.EMAIL_USER,
@@ -130,7 +130,7 @@ res.json({
 
 } catch (e) {
   next(e);
-}
+}       
 });
 
 router.post("/reset-password", async (req, res, next) => {

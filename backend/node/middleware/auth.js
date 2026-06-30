@@ -56,7 +56,12 @@ function setAuthCookie(res, token) {
 }
 
 function clearAuthCookie(res) {
-  res.clearCookie("access_token", { path: "/" });
+  res.clearCookie("access_token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+  });
 }
 
 module.exports = { signToken, requireAuth, requireAdmin, setAuthCookie, clearAuthCookie };
