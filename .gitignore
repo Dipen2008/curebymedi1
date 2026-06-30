@@ -1,0 +1,22 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Backend env files
+backend/.env
+backend/node/.env
+
+# Node modules
+node_modules/
+
+# Python virtual env
+venv/
+__pycache__/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

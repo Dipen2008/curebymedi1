@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#2E5B55" />
+<link rel="manifest" href="/manifest.json" />
+<title>My favorites — CureByMedi</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <a href="/dashboard.html" class="brand"><span class="dot"></span> CureByMedi</a>
+  <a href="/dashboard.html" class="btn btn-ghost">← Back</a>
+</header>
+<main class="container">
+  <div style="padding: 24px 0 8px;">
+    <h1 style="font-family:Outfit;font-size:clamp(26px,6vw,34px);font-weight:600;">My favorites</h1>
+    <p class="muted small" style="margin-top:6px;">All the medicines you saved with the heart icon.</p>
+  </div>
+  <div id="favGrid" class="med-grid"></div>
+  <div id="empty" class="empty hidden">
+    <div style="font-size:18px;">No favorites yet</div>
+    <div style="margin-top:6px;">Tap the ♡ icon on any medicine to save it here.</div>
+    <a href="/dashboard.html" class="btn btn-primary" style="margin-top:14px;">Browse medicines</a>
+  </div>
+</main>
+<script src="/js/api.js"></script>
+<script>
+(async function () {
+  await requireAuth();
+  injectBottomNav("favs");
+  const { items } = await A.myFavorites();
+  if (!items.length) return $("#empty").classList.remove("hidden");
+  $("#favGrid").innerHTML = items.map((m) => `
+    <article class="med-card" onclick="location.href='/dashboard.html?id=${m.id}'">
+      <div class="cat">${escapeHtml(m.category)}</div>
+      <div class="name">${escapeHtml(m.name)}</div>
+      <div class="comp">${escapeHtml(m.composition || "")}</div>
+      <div class="foot"><div class="price">${escapeHtml(m.price || "")}</div><div class="mfg">${escapeHtml(m.manufacturer || "")}</div></div>
+    </article>`).join("");
+})();
+</script>
+</body>
+</html>

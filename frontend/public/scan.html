@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#2E5B55" />
+<title>Scan medicine — CureByMedi</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/dashboard.html" class="brand"><span class="dot"></span> CureByMedi</a>
+  <a href="/dashboard.html" class="btn btn-ghost">← Back</a>
+</header>
+
+<main class="container">
+  <div class="scan-wrap">
+    <h1 style="font-family:Outfit; font-size: clamp(26px, 6vw, 34px); font-weight: 600;">Scan a medicine</h1>
+    <p class="muted small" style="margin-top:6px;">Take a clear photo of the medicine strip, bottle or pack. Our AI will read the name and pull up its info.</p>
+
+    <div class="scan-target" id="dropZone">
+      <div class="icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="12" r="4"/></svg>
+      </div>
+      <h3>Tap to capture or upload</h3>
+      <p>JPEG / PNG / WEBP up to 10 MB</p>
+      <div style="margin-top: 18px; display: flex; gap:10px; justify-content:center; flex-wrap: wrap;">
+        <label class="btn btn-primary" for="camInput" data-testid="scan-camera-btn">📷 Take photo</label>
+        <label class="btn btn-secondary" for="fileInput" data-testid="scan-upload-btn">⬆ Upload</label>
+      </div>
+      <input id="camInput" type="file" accept="image/*" capture="environment" class="hidden" />
+      <input id="fileInput" type="file" accept="image/*" class="hidden" />
+    </div>
+
+    <div id="preview" class="scan-preview hidden">
+      <img id="previewImg" alt="" />
+      <div style="padding: 12px 14px; display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="resetScan()">Clear</button>
+        <button class="btn btn-primary" id="analyzeBtn" data-testid="scan-analyze-btn">Identify medicine</button>
+      </div>
+    </div>
+
+    <div id="loading" class="alert" style="background: var(--brand-soft); color: var(--brand); margin-top: 16px; display:none;">
+      🔎 Reading the photo… this usually takes a few seconds.
+    </div>
+
+    <div id="result" class="scan-result hidden" data-testid="scan-result">
+      <h3 id="resName"></h3>
+      <div class="summary" id="resSummary"></div>
+      <div id="resMatch"></div>
+    </div>
+
+    <div id="error" class="alert alert-error hidden" data-testid="scan-error"></div>
+  </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/scan.js"></script>
+<script>injectBottomNav("scan");</script>
+</body>
+</html>

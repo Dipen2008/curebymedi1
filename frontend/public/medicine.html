@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#2E5B55" />
+<link rel="manifest" href="/manifest.json" />
+<title id="title">Medicine — CureByMedi</title>
+<meta id="metaDesc" name="description" content="Medicine information including composition, dosage, side effects." />
+<meta id="ogTitle" property="og:title" content="Medicine — CureByMedi" />
+<meta id="ogDesc" property="og:description" content="Medicine information including composition, dosage, side effects." />
+<meta id="ogUrl" property="og:url" content="" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="CureByMedi" />
+<meta id="ogImage" property="og:image" content="/manifest.json" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta id="twTitle" name="twitter:title" content="Medicine — CureByMedi" />
+<meta id="twDesc" name="twitter:description" content="Medicine information." />
+<link id="canon" rel="canonical" href="" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body style="padding-bottom:0;">
+<header class="topbar">
+  <a href="/" class="brand"><span class="dot"></span> CureByMedi</a>
+  <div class="actions">
+    <a href="/login.html" class="btn btn-ghost">Login</a>
+    <a href="/signup.html" class="btn btn-primary">Sign up</a>
+  </div>
+</header>
+<main class="container" style="padding: 24px 20px 60px;">
+  <div id="loader" class="empty">Loading…</div>
+  <article id="article" class="hidden">
+    <a href="/" class="small muted" style="text-transform:uppercase;letter-spacing:0.15em;">← All medicines</a>
+    <div class="cat" style="margin-top:14px;color:var(--brand);font-weight:700;letter-spacing:0.15em;text-transform:uppercase;font-size:11px;" id="cat"></div>
+    <h1 id="name" style="font-family:Outfit;font-size:clamp(28px,6vw,42px);font-weight:600;margin-top:4px;"></h1>
+    <div class="small muted" id="mfg" style="margin-top:4px;"></div>
+
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:14px;">
+      <span class="pill" id="price" style="display:none;"></span>
+      <span class="pill" id="pack" style="display:none;background:#F5F5F4;color:var(--text-soft);"></span>
+      <span class="pill" id="type" style="display:none;background:#F5F5F4;color:var(--text-soft);"></span>
+    </div>
+
+    <div id="body" style="margin-top:20px;"></div>
+
+    <div class="card" style="margin-top:24px;background:var(--brand-soft);border:none;">
+      <div style="font-family:Outfit;font-size:18px;font-weight:600;color:var(--brand);">Want pill reminders &amp; favorites?</div>
+      <p class="small" style="margin-top:6px;color:var(--brand);">Create a free account to save medicines, set reminders, and use the AI photo scan.</p>
+      <a href="/signup.html" class="btn btn-primary" style="margin-top:10px;">Create free account →</a>
+    </div>
+  </article>
+  <div id="err" class="empty hidden"></div>
+</main>
+<footer style="border-top:1px solid var(--border);text-align:center;padding:18px;color:var(--text-mute);font-size:13px;">© 2026 CureByMedi</footer>
+<script src="/js/api.js"></script>
+<script src="/js/partners.js"></script>
+<script>
+function field(label, value) {
+  if (!value) return "";
+  return `<div class="field"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div></div>`;
+}
+(async function () {
+  const params = new URLSearchParams(location.search);
+  const slug = params.get("slug") || location.pathname.replace(/^\/medicine\//, "").replace(/\.html$/, "");
+  try {
+    let m = await A.medicineBySlug(slug);
+    if (!m.aiEnriched) {
+      try {
+        const r = await fetch(`/api/medicines/${m.id}/enrich`, { method: "POST" });
+        if (r.ok) {
+          const enriched = await r.json();
+          if (enriched && enriched.id) m = enriched;
+        }
+      } catch (_e) {}
+    }
+    document.title = `${m.name} — CureByMedi`;
+    const desc = `${m.name}: ${m.composition || ""} ${m.usedFor ? "— " + m.usedFor : ""}`.slice(0, 200);
+    $("#metaDesc").setAttribute("content", desc);
+    $("#ogTitle").setAttribute("content", `${m.name} — CureByMedi`);
+    $("#twTitle").setAttribute("content", `${m.name} — CureByMedi`);
+    $("#ogDesc").setAttribute("content", desc);
+    $("#twDesc").setAttribute("content", desc);
+    $("#ogUrl").setAttribute("content", location.href);
+    $("#canon").setAttribute("href", location.href);
+    $("#ogImage").setAttribute("content", m.image || `${location.origin}/og-default.svg`);
+    $("#cat").textContent = m.category;
+    $("#name").textContent = m.name;
+    $("#mfg").textContent = m.manufacturer ? "by " + m.manufacturer : "";
+    if (m.price) { $("#price").textContent = "Price " + m.price; $("#price").style.display = "inline-block"; }
+    if (m.packSize) { $("#pack").textContent = m.packSize; $("#pack").style.display = "inline-block"; }
+    if (m.type) { $("#type").textContent = m.type; $("#type").style.display = "inline-block"; }
+    $("#body").innerHTML = `
+      ${field("Composition", m.composition)}
+      ${field("Used for", m.usedFor)}
+      ${field("Daily dosage", m.dailyDosage)}
+      ${field("How to take", m.howToTake)}
+      ${field("Benefits", m.benefits)}
+      ${field("Effects on the body", m.bodyEffects)}
+      ${field("Side effects", m.sideEffects)}
+      ${m.warnings ? `<div class="alert" style="background:#fef3c7;color:#92400e;margin-top:8px;"><strong>⚠ Warnings:</strong> ${escapeHtml(m.warnings)}</div>` : ""}
+      ${window.renderPartnerBuyBox ? renderPartnerBuyBox(m.name) : ""}
+      <div class="alert small" style="background:#FEF3C7;color:#78350F;margin-top:14px;">⚠ <strong>Disclaimer:</strong> Educational info only — NOT medical advice. We are NOT responsible for any consequence of using this information. Always consult a doctor.</div>
+    `;
+    $("#loader").classList.add("hidden"); $("#article").classList.remove("hidden");
+
+    // Inject JSON-LD structured data for Google rich snippets
+    const ld = {
+      "@context": "https://schema.org",
+      "@type": "Drug",
+      "name": m.name,
+      "alternateName": m.composition,
+      "manufacturer": m.manufacturer ? { "@type": "Organization", "name": m.manufacturer } : undefined,
+      "description": m.usedFor || m.benefits || `${m.name} — ${m.composition}`,
+      "activeIngredient": m.composition,
+      "dosageForm": m.category,
+      "doseSchedule": m.dailyDosage,
+      "warning": m.warnings,
+    };
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.textContent = JSON.stringify(ld);
+    document.head.appendChild(script);
+  } catch (e) {
+    $("#loader").classList.add("hidden"); $("#err").classList.remove("hidden");
+    $("#err").innerHTML = `<div style="font-size:18px;">Medicine not found</div><div class="small" style="margin-top:6px;">Search from the <a href="/">homepage</a>.</div>`;
+  }
+})();
+</script>
+</body>
+</html>

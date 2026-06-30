@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reset password — CureByMedi</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body style="padding-bottom:0;">
+<div class="auth-wrap"><div class="auth-card">
+  <a href="/" class="brand" style="color:var(--brand);display:inline-flex;align-items:center;gap:8px;font-family:Outfit;font-weight:700;font-size:18px;">
+    <span style="width:10px;height:10px;background:var(--brand);border-radius:50%;display:inline-block;"></span> CureByMedi
+  </a>
+  <h1 style="margin-top:22px;">Reset password</h1>
+  <p class="sub">Choose a new password (min 6 characters).</p>
+  <div id="result" class="alert hidden" style="margin-top:14px;"></div>
+  <form id="form">
+    <div><label class="label">New password</label><input class="input" type="password" name="newPassword" required minlength="6" /></div>
+    <button class="btn btn-primary btn-block btn-lg" style="margin-top:14px;">Set new password</button>
+  </form>
+</div></div>
+<script src="/js/api.js"></script>
+<script>
+const token = new URLSearchParams(location.search).get("token");
+$("#form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const box = $("#result");
+  try {
+    await A.resetPassword(token, e.target.newPassword.value);
+    box.classList.remove("hidden", "alert-error"); box.classList.add("alert-success");
+    box.innerHTML = `✓ Password reset! <a href="/login.html">Log in →</a>`;
+  } catch (err) {
+    box.classList.remove("hidden", "alert-success"); box.classList.add("alert-error");
+    box.textContent = err.message;
+  }
+});
+</script>
+</body>
+</html>

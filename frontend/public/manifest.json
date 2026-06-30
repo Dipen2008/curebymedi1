@@ -1,0 +1,16 @@
+{
+  "name": "CureByMedi - Indian Medicine Info",
+  "short_name": "CureByMedi",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "background_color": "#FDFDFA",
+  "theme_color": "#2E5B55",
+  "orientation": "portrait",
+  "scope": "/",
+  "description": "Search 250,000+ Indian medicines. AI photo-scan, drug interaction checker, symptom suggester.",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["health", "medical", "lifestyle"]
+}

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#2E5B55"/>
+      <stop offset="1" stop-color="#20403B"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="120" cy="120" r="22" fill="#E7F0EE"/>
+  <text x="170" y="135" font-family="Outfit, Inter, system-ui" font-size="44" font-weight="700" fill="#E7F0EE">CureByMedi</text>
+  <text x="120" y="330" font-family="Outfit, Inter, system-ui" font-size="86" font-weight="700" fill="#FDFDFA">Search any medicine.</text>
+  <text x="120" y="430" font-family="Outfit, Inter, system-ui" font-size="86" font-weight="700" fill="#9FD8CC">Get clear answers.</text>
+  <text x="120" y="540" font-family="Manrope, Inter, system-ui" font-size="30" fill="#E7F0EE" opacity="0.85">250,000+ Indian medicines · AI photo scan · Reminders · Free</text>
+</svg>

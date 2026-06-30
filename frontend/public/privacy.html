@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy policy — CureByMedi</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body style="padding-bottom:0;">
+<header class="topbar">
+  <a href="/" class="brand"><span class="dot"></span> CureByMedi</a>
+  <a href="/" class="btn btn-ghost">← Back</a>
+</header>
+<main class="container" style="padding: 32px 20px;">
+  <h1 style="font-family:Outfit;font-size:clamp(28px,6vw,40px);font-weight:600;">Privacy policy</h1>
+  <p class="muted small">Last updated: January 2026</p>
+
+  <section style="margin-top:24px;display:grid;gap:18px;">
+    <div>
+      <h2 style="font-family:Outfit;font-size:20px;font-weight:600;">What we store</h2>
+      <ul class="small" style="padding-left:18px;line-height:1.7;">
+        <li><strong>Account:</strong> your email and a one-way bcrypt-hashed password (we cannot read your password).</li>
+        <li><strong>Favorites / recently viewed / reminders:</strong> the medicines you save and the times you set.</li>
+        <li><strong>AI scans:</strong> we keep the AI-detected medicine name and a short summary for the admin audit log. We do <strong>not</strong> permanently store the photo you upload — it is sent to the AI provider, analysed, and discarded. Scan records older than <strong>90 days are automatically deleted</strong>.</li>
+        <li><strong>Language preference:</strong> English / Hindi.</li>
+      </ul>
+    </div>
+    <div>
+      <h2 style="font-family:Outfit;font-size:20px;font-weight:600;">What we never store</h2>
+      <ul class="small" style="padding-left:18px;line-height:1.7;">
+        <li>Your real name (we only know your email).</li>
+        <li>Payment information — we do not charge for the service.</li>
+        <li>Medical records, prescriptions, or chat content.</li>
+        <li>Your phone number, address, or location.</li>
+      </ul>
+    </div>
+    <div>
+      <h2 style="font-family:Outfit;font-size:20px;font-weight:600;">Who else sees your data</h2>
+      <ul class="small" style="padding-left:18px;line-height:1.7;">
+        <li><strong>AI provider (OpenAI):</strong> when you scan a photo or ask for interactions / symptoms, the text/image is sent to the AI provider to generate a response. They have their own privacy policy.</li>
+        <li><strong>Hosting:</strong> our cloud host (MongoDB Atlas + Render) stores the database — encrypted at rest.</li>
+        <li>We never sell or share your data with advertisers.</li>
+      </ul>
+    </div>
+    <div>
+      <h2 style="font-family:Outfit;font-size:20px;font-weight:600;">Your rights</h2>
+      <p class="small">You can delete your entire account (and all favorites / reminders) anytime from <a href="/profile.html">your profile → Delete my account</a>. This is permanent and immediate.</p>
+    </div>
+    <div>
+      <h2 style="font-family:Outfit;font-size:20px;font-weight:600;">Contact</h2>
+      <p class="small">Questions? Email the administrator listed on the contact page.</p>
+    </div>
+  </section>
+</main>
+<script src="/js/api.js"></script>
+</body>
+</html>

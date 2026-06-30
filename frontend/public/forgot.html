@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forgot password — CureByMedi</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body style="padding-bottom:0;">
+<div class="auth-wrap"><div class="auth-card">
+  <a href="/" class="brand" style="color:var(--brand);display:inline-flex;align-items:center;gap:8px;font-family:Outfit;font-weight:700;font-size:18px;">
+    <span style="width:10px;height:10px;background:var(--brand);border-radius:50%;display:inline-block;"></span> CureByMedi
+  </a>
+  <h1 style="margin-top:22px;">Forgot password?</h1>
+  <p class="sub">Enter your email — we'll issue a reset link.</p>
+  <div id="result" class="alert hidden" style="margin-top:14px;"></div>
+  <form id="form">
+    <div><label class="label">Email</label><input class="input" type="email" name="email" required /></div>
+    <button class="btn btn-primary btn-block btn-lg" style="margin-top:14px;">Send reset link</button>
+  </form>
+  <p class="switch"><a href="/login.html">← Back to login</a></p>
+</div></div>
+<script src="/js/api.js"></script>
+<script>
+$("#form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = e.target.email.value.trim();
+  const box = $("#result");
+  try {
+    const r = await A.forgotPassword(email);
+    box.classList.remove("hidden", "alert-error"); box.classList.add("alert-success");
+    if (r.resetUrl) {
+      box.innerHTML = `✓ ${escapeHtml(r.message)}<br/><br/>
+        <strong>Reset link (email integration pending):</strong><br/>
+        <a href="${r.resetUrl}" style="word-break:break-all;">${r.resetUrl}</a>`;
+    } else {
+      box.textContent = r.message;
+    }
+  } catch (err) {
+    box.classList.remove("hidden", "alert-success"); box.classList.add("alert-error");
+    box.textContent = err.message;
+  }
+});
+</script>
+</body>
+</html>

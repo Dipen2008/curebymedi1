@@ -1,0 +1,14 @@
+{
+  "name": "curebymedi-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static HTML/CSS/JS frontend for CureByMedi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^4.1.1"
+  }
+}

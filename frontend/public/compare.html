@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#2E5B55" />
+<link rel="manifest" href="/manifest.json" />
+<title>Compare medicines — CureByMedi</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <a href="/dashboard.html" class="brand"><span class="dot"></span> CureByMedi</a>
+  <a href="/dashboard.html" class="btn btn-ghost">← Back</a>
+</header>
+<main class="container">
+  <div style="padding:24px 0 8px;">
+    <h1 style="font-family:Outfit;font-size:clamp(26px,6vw,34px);font-weight:600;">Compare medicines</h1>
+    <p class="muted small" style="margin-top:6px;">Search and pick two medicines to see them side-by-side.</p>
+  </div>
+  <div class="card" style="margin-top:14px;display:grid;gap:14px;grid-template-columns:1fr 1fr;">
+    <div>
+      <label class="label">Medicine A</label>
+      <input id="searchA" class="input" placeholder="search…" />
+      <div id="resultsA" style="margin-top:6px;max-height:200px;overflow-y:auto;"></div>
+    </div>
+    <div>
+      <label class="label">Medicine B</label>
+      <input id="searchB" class="input" placeholder="search…" />
+      <div id="resultsB" style="margin-top:6px;max-height:200px;overflow-y:auto;"></div>
+    </div>
+  </div>
+  <div id="comparison" style="margin-top:14px;"></div>
+</main>
+<script src="/js/api.js"></script>
+<script>
+const picks = { A: null, B: null };
+
+(async function () {
+  await requireAuth();
+  injectBottomNav();
+  ["A", "B"].forEach((slot) => bindSearch(slot));
+})();
+
+function bindSearch(slot) {
+  const input = document.getElementById("search" + slot);
+  const box = document.getElementById("results" + slot);
+  let d;
+  input.addEventListener("input", (e) => {
+    clearTimeout(d);
+    d = setTimeout(async () => {
+      const q = e.target.value.trim();
+      if (!q) { box.innerHTML = ""; return; }
+      const { items } = await A.medicines({ search: q, limit: 5 });
+      box.innerHTML = items.map((m) => `
+        <div onclick="pick('${slot}','${m.id}')" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;">
+          <div style="font-weight:600;font-size:14px;">${escapeHtml(m.name)}</div>
+          <div class="small muted">${escapeHtml(m.composition || "")}</div>
+        </div>`).join("");
+    }, 200);
+  });
+}
+
+window.pick = async (slot, id) => {
+  let m = await A.medicineById(id);
+  if (!m.aiEnriched) { try { m = await A.enrichMedicine(id); } catch (_e) {} }
+  picks[slot] = m;
+  document.getElementById("search" + slot).value = m.name;
+  document.getElementById("results" + slot).innerHTML = "";
+  if (picks.A && picks.B) render();
+};
+
+function row(label, a, b) {
+  return `<tr><th style="text-align:left;color:var(--text-mute);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;font-size:11px;">${label}</th><td>${escapeHtml(a || "—")}</td><td>${escapeHtml(b || "—")}</td></tr>`;
+}
+
+function render() {
+  const a = picks.A, b = picks.B;
+  document.getElementById("comparison").innerHTML = `
+    <div class="card" style="overflow-x:auto;">
+      <table class="table">
+        <thead><tr><th></th><th style="color:var(--brand);">${escapeHtml(a.name)}</th><th style="color:var(--brand);">${escapeHtml(b.name)}</th></tr></thead>
+        <tbody>
+          ${row("Composition", a.composition, b.composition)}
+          ${row("Manufacturer", a.manufacturer, b.manufacturer)}
+          ${row("Category", a.category, b.category)}
+          ${row("Price", a.price, b.price)}
+          ${row("Used for", a.usedFor, b.usedFor)}
+          ${row("Daily dosage", a.dailyDosage, b.dailyDosage)}
+          ${row("Side effects", a.sideEffects, b.sideEffects)}
+          ${row("How to take", a.howToTake, b.howToTake)}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>

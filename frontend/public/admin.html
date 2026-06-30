@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#2E5B55" />
+<title>Admin — CureByMedi</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/dashboard.html" class="brand"><span class="dot"></span> CureByMedi · <span style="color:#92400E; background:#FEF3C7; padding: 2px 8px; border-radius: 8px; font-size:11px; margin-left:4px;">ADMIN</span></a>
+  <div class="actions">
+    <a href="/dashboard.html" class="btn btn-ghost">User view</a>
+    <button class="btn btn-secondary" onclick="logout()" data-testid="admin-logout-btn">Log out</button>
+  </div>
+</header>
+
+<main class="container" style="padding-top: 20px;">
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview" data-testid="tab-overview">Overview</button>
+    <button class="tab" data-tab="medicines" data-testid="tab-medicines">Medicines</button>
+    <button class="tab" data-tab="users" data-testid="tab-users">Users</button>
+    <button class="tab" data-tab="scans" data-testid="tab-scans">Scans</button>
+    <button class="tab" data-tab="import" data-testid="tab-import">Bulk import</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <section id="pane-overview" class="pane">
+    <div class="admin-grid">
+      <div class="stat"><div class="label">Medicines</div><div class="val brand" id="stat-meds" data-testid="stat-medicines">—</div></div>
+      <div class="stat"><div class="label">Users</div><div class="val" id="stat-users" data-testid="stat-users">—</div></div>
+      <div class="stat"><div class="label">Admins</div><div class="val" id="stat-admins" data-testid="stat-admins">—</div></div>
+      <div class="stat"><div class="label">Scans today</div><div class="val" id="stat-scans-today" data-testid="stat-scans-today">—</div></div>
+      <div class="stat"><div class="label">Scans all-time</div><div class="val" id="stat-scans-total" data-testid="stat-scans-total">—</div></div>
+    </div>
+    <div class="section-head"><h2>Medicines by category</h2></div>
+    <div class="card-flat">
+      <table class="table">
+        <thead><tr><th>Category</th><th style="text-align:right">Count</th></tr></thead>
+        <tbody id="catBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- MEDICINES -->
+  <section id="pane-medicines" class="pane hidden">
+    <div class="toolbar">
+      <input id="medSearch" class="input" placeholder="Search medicines…" data-testid="admin-med-search" />
+      <button class="btn btn-primary" onclick="openMedForm()" data-testid="admin-add-med">+ Add medicine</button>
+    </div>
+    <div class="card-flat">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Manufacturer</th><th>Category</th><th>Price</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody id="medBody"></tbody>
+      </table>
+    </div>
+    <div class="row between" style="margin-top:14px;">
+      <span class="muted small" id="medMeta">—</span>
+      <button class="btn btn-secondary" id="medLoadMore" data-testid="admin-med-load-more">Load more</button>
+    </div>
+  </section>
+
+  <!-- USERS -->
+  <section id="pane-users" class="pane hidden">
+    <div class="toolbar">
+      <input id="userSearch" class="input" placeholder="Search by email…" data-testid="admin-user-search" />
+    </div>
+    <div class="card-flat">
+      <table class="table">
+        <thead><tr><th>Email</th><th>Role</th><th>Joined</th><th>Last login</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody id="userBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SCANS -->
+  <section id="pane-scans" class="pane hidden">
+    <div class="card-flat">
+      <table class="table">
+        <thead><tr><th>When</th><th>User</th><th>Detected</th><th>Summary</th></tr></thead>
+        <tbody id="scanBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- IMPORT -->
+  <section id="pane-import" class="pane hidden">
+    <div class="card">
+      <h2 style="font-family:Outfit; font-size:22px; font-weight:600;">Bulk import medicines</h2>
+      <p class="small muted" style="margin-top:6px;">Upload a CSV or paste JSON. CSV columns supported: <code>name, manufacturer, price, type, packSize, composition, category, dosage, benefits, sideEffects, howToTake, image</code>. The <code>name</code> column is required.</p>
+      <div style="margin-top: 16px; display: grid; gap: 12px;">
+        <label for="csvInput" class="btn btn-secondary" style="width: fit-content;">📁 Choose CSV file</label>
+        <input id="csvInput" type="file" accept=".csv,text/csv" class="hidden" />
+        <textarea id="jsonInput" class="input" rows="6" placeholder='Or paste a JSON array: [{"name":"...","manufacturer":"..."}, …]'></textarea>
+        <button id="importBtn" class="btn btn-primary" data-testid="admin-import-btn">Import</button>
+        <div id="importResult" class="alert hidden"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Medicine edit modal -->
+<div id="medModal" class="modal-bg hidden" onclick="closeMedForm(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="medFormTitle">Add medicine</h2>
+      <button class="btn btn-icon btn-ghost" onclick="closeMedForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="medForm" class="spaced">
+        <div class="row" style="gap:12px; align-items:flex-end;">
+          <div style="flex:2;"><label class="label">Name *</label><input class="input" name="name" required data-testid="form-name" /></div>
+          <div style="flex:1;"><label class="label">Price</label><input class="input" name="price" placeholder="₹0" data-testid="form-price" /></div>
+        </div>
+        <div class="row" style="gap:12px; align-items:flex-end;">
+          <div style="flex:1;"><label class="label">Manufacturer</label><input class="input" name="manufacturer" data-testid="form-manufacturer" /></div>
+          <div style="flex:1;"><label class="label">Category</label>
+            <select class="input" name="category" data-testid="form-category">
+              <option>Tablets</option><option>Capsules</option><option>Syrup</option><option>Injection</option><option>Cream</option><option>Drops</option><option>Ayurvedic</option><option>Homeopathy</option><option>Prescription</option>
+            </select>
+          </div>
+        </div>
+        <div><label class="label">Composition</label><input class="input" name="composition" data-testid="form-composition" /></div>
+        <div><label class="label">Pack size</label><input class="input" name="packSize" placeholder="strip of 10 tablets" /></div>
+        <div><label class="label">Dosage</label><textarea class="input" name="dosage"></textarea></div>
+        <div><label class="label">Benefits</label><textarea class="input" name="benefits"></textarea></div>
+        <div><label class="label">Side effects</label><textarea class="input" name="sideEffects"></textarea></div>
+        <div><label class="label">How to take</label><textarea class="input" name="howToTake"></textarea></div>
+        <div id="medFormErr" class="alert alert-error hidden"></div>
+        <div class="row between">
+          <button type="button" class="btn btn-ghost" onclick="closeMedForm()">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-testid="form-submit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>

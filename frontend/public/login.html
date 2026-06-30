@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#2E5B55" />
+<title>Login — CureByMedi</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body style="padding-bottom:0">
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <a href="/" class="brand" style="color: var(--brand); display:inline-flex; align-items:center; gap:8px; font-family:Outfit; font-weight:700; font-size:18px;">
+      <span style="width:10px;height:10px;background:var(--brand);border-radius:50%;display:inline-block;"></span> CureByMedi
+    </a>
+    <h1 style="margin-top: 22px;">Welcome back</h1>
+    <p class="sub">Log in to continue searching medicines.</p>
+
+    <div id="error" class="alert alert-error hidden" data-testid="login-error"></div>
+
+    <form id="form" autocomplete="on">
+      <div>
+        <label class="label">Email</label>
+        <input class="input" type="email" name="email" required autocomplete="email" data-testid="login-email-input" placeholder="you@example.com" />
+      </div>
+      <div>
+        <label class="label">Password</label>
+        <input class="input" type="password" name="password" required autocomplete="current-password" data-testid="login-password-input" placeholder="••••••••" />
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" type="submit" data-testid="login-submit-button">
+        <span id="btn-text">Log in</span>
+      </button>
+    </form>
+
+    <p class="switch">New here? <a href="/signup.html" data-testid="link-signup">Create an account</a> · <a href="/forgot.html">Forgot password?</a></p>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script>setupAuthForm({ mode: "login" });</script>
+</body>
+</html>

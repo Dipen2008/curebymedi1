@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#2E5B55" />
+<link rel="manifest" href="/manifest.json" />
+<title>Symptom checker — CureByMedi</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <a href="/dashboard.html" class="brand"><span class="dot"></span> CureByMedi</a>
+  <a href="/dashboard.html" class="btn btn-ghost">← Back</a>
+</header>
+<main class="container">
+  <div style="padding: 24px 0 8px;">
+    <h1 style="font-family:Outfit;font-size:clamp(26px,6vw,34px);font-weight:600;">Symptom checker</h1>
+    <p class="muted small" style="margin-top:6px;">Describe what you feel. We'll suggest common OTC medicines — never a replacement for a doctor's advice.</p>
+  </div>
+  <div class="card" style="margin-top:14px;">
+    <label class="label">Your symptoms</label>
+    <textarea id="symptoms" class="input" rows="3" placeholder="e.g. headache, mild fever since this morning"></textarea>
+    <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px;">
+      <button class="chip" onclick="quick('headache')">headache</button>
+      <button class="chip" onclick="quick('fever')">fever</button>
+      <button class="chip" onclick="quick('cough and cold')">cough &amp; cold</button>
+      <button class="chip" onclick="quick('acidity / heartburn')">acidity</button>
+      <button class="chip" onclick="quick('mild stomach pain')">stomach pain</button>
+      <button class="chip" onclick="quick('runny nose, sneezing')">allergy</button>
+    </div>
+    <button id="suggestBtn" class="btn btn-primary btn-block btn-lg" style="margin-top:14px;">Get suggestions</button>
+  </div>
+  <div id="loading" class="alert" style="background:var(--brand-soft);color:var(--brand);margin-top:14px;display:none;"><span class="spinner"></span> Thinking…</div>
+  <div id="result" class="hidden" style="margin-top:14px;"></div>
+</main>
+<script src="/js/api.js"></script>
+<script>
+window.quick = (t) => { const ta = $("#symptoms"); ta.value = ta.value ? ta.value + ", " + t : t; };
+(async function () {
+  await requireAuth();
+  injectBottomNav();
+  $("#suggestBtn").addEventListener("click", async () => {
+    const txt = $("#symptoms").value.trim();
+    if (txt.length < 3) return alert("Tell us your symptoms first");
+    $("#loading").style.display = "block"; $("#result").classList.add("hidden");
+    try {
+      const r = await A.suggestForSymptoms(txt);
+      $("#result").classList.remove("hidden");
+      $("#result").innerHTML = `
+        <div class="alert" style="background:#FEF3C7;color:#78350F;">⚠ ${escapeHtml(r.disclaimer)}</div>
+        <div style="margin-top:14px;display:grid;gap:10px;">
+          ${r.suggestions.map((s) => `
+            <div class="card">
+              <div style="font-family:Outfit;font-size:18px;font-weight:600;">${escapeHtml(s.name)}</div>
+              <div class="small muted" style="margin-top:2px;">${escapeHtml(s.composition)}</div>
+              <div style="margin-top:8px;font-size:14px;">${escapeHtml(s.reason)}</div>
+              <div class="small" style="margin-top:6px;"><strong>Dosage:</strong> ${escapeHtml(s.dosage)}</div>
+            </div>`).join("")}
+        </div>
+        ${r.redFlags.length ? `
+        <div class="card" style="margin-top:14px;border-color:#FECACA;background:#FEF2F2;">
+          <div style="font-weight:700;color:#991B1B;">🚨 See a doctor immediately if you have:</div>
+          <ul style="margin:8px 0 0 18px;padding:0;color:#991B1B;">${r.redFlags.map((f) => `<li>${escapeHtml(f)}</li>`).join("")}</ul>
+        </div>` : ""}
+      `;
+    } catch (e) {
+      $("#result").classList.remove("hidden");
+      $("#result").innerHTML = `<div class="alert alert-error">${escapeHtml(e.message)}</div>`;
+    } finally { $("#loading").style.display = "none"; }
+  });
+})();
+</script>
+</body>
+</html>
