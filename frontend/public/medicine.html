@@ -66,7 +66,9 @@ function field(label, value) {
     let m = await A.medicineBySlug(slug);
     if (!m.aiEnriched) {
       try {
-        const r = await fetch(`/api/medicines/${m.id}/enrich`, { method: "POST" });
+        const r = await fetch(`https://curebymedi.onrender.com/api/medicines/${m.id}/enrich`, {
+  method: "POST"
+});
         if (r.ok) {
           const enriched = await r.json();
           if (enriched && enriched.id) m = enriched;

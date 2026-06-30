@@ -1,6 +1,5 @@
 /* CureByMedi — shared API client (vanilla JS, no framework) */
-
-const API_BASE = "http://localhost:9001/api";
+const API_BASE = "https://curebymedi.onrender.com/api";
 const TOKEN_KEY = "cbm_token";
 const LANG_KEY = "cbm_lang";
 
