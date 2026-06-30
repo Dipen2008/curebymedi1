@@ -30,10 +30,10 @@ logging.basicConfig(
 
 log = logging.getLogger("bridge")
 
-NODE_HOST = "127.0.0.1"
-NODE_PORT = int(os.environ.get("NODE_PORT", "9001"))
-NODE_BASE = f"http://{NODE_HOST}:{NODE_PORT}"
-
+NODE_BASE = os.environ.get(
+    "NODE_BASE",
+    "https://curebymedi.onrender.com"
+)
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
