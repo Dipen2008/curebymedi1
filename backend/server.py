@@ -102,8 +102,7 @@ app = FastAPI(title="CureByMedi AI Bridge")
 
 @app.on_event("startup")
 async def startup():
-
-    _start_node()
+    pass
 
     # Wait until Node is alive
 
