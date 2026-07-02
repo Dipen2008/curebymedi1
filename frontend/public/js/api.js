@@ -9,7 +9,7 @@ function canCallAI() {
   return true;
 }
 /* CureByMedi — shared API client (vanilla JS, no framework) */
-const API_BASE = "https://your-node-backend.onrender.com/api";
+const API_BASE = "https://curebymedi-node.onrender.com/api";
 const TOKEN_KEY = "cbm_token";
 const LANG_KEY = "cbm_lang";
 
