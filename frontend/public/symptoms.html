@@ -34,40 +34,93 @@
   <div id="loading" class="alert" style="background:var(--brand-soft);color:var(--brand);margin-top:14px;display:none;"><span class="spinner"></span> Thinking…</div>
   <div id="result" class="hidden" style="margin-top:14px;"></div>
 </main>
+
 <script src="/js/api.js"></script>
 <script>
-window.quick = (t) => { const ta = $("#symptoms"); ta.value = ta.value ? ta.value + ", " + t : t; };
+let isLoading = false;
+
+window.quick = (t) => {
+  const ta = $("#symptoms");
+  ta.value = ta.value ? ta.value + ", " + t : t;
+};
+
 (async function () {
   await requireAuth();
   injectBottomNav();
+
   $("#suggestBtn").addEventListener("click", async () => {
+    if (isLoading) return;
+
     const txt = $("#symptoms").value.trim();
     if (txt.length < 3) return alert("Tell us your symptoms first");
-    $("#loading").style.display = "block"; $("#result").classList.add("hidden");
+
+    isLoading = true;
+    $("#suggestBtn").disabled = true;
+
+    $("#loading").style.display = "block";
+    $("#result").classList.remove("hidden");
+
+    // 🚀 FIX 2: instant feedback UI
+    $("#result").innerHTML = `
+      <div class="card" style="display:flex;align-items:center;gap:10px;">
+        <div class="spinner"></div>
+        <div>
+          <div style="font-weight:600;">Analyzing symptoms...</div>
+          <div class="small muted">Checking possible conditions and medicines</div>
+        </div>
+      </div>
+    `;
+
     try {
+      // ⏱️ API CALL
       const r = await A.suggestForSymptoms(txt);
-      $("#result").classList.remove("hidden");
+
+      // 🚀 FINAL RESULT UI
       $("#result").innerHTML = `
-        <div class="alert" style="background:#FEF3C7;color:#78350F;">⚠ ${escapeHtml(r.disclaimer)}</div>
+        <div class="alert" style="background:#FEF3C7;color:#78350F;">
+          ⚠ ${escapeHtml(r.disclaimer)}
+        </div>
+
         <div style="margin-top:14px;display:grid;gap:10px;">
           ${r.suggestions.map((s) => `
             <div class="card">
-              <div style="font-family:Outfit;font-size:18px;font-weight:600;">${escapeHtml(s.name)}</div>
-              <div class="small muted" style="margin-top:2px;">${escapeHtml(s.composition)}</div>
-              <div style="margin-top:8px;font-size:14px;">${escapeHtml(s.reason)}</div>
-              <div class="small" style="margin-top:6px;"><strong>Dosage:</strong> ${escapeHtml(s.dosage)}</div>
-            </div>`).join("")}
+              <div style="font-family:Outfit;font-size:18px;font-weight:600;">
+                ${escapeHtml(s.name)}
+              </div>
+              <div class="small muted" style="margin-top:2px;">
+                ${escapeHtml(s.composition)}
+              </div>
+              <div style="margin-top:8px;font-size:14px;">
+                ${escapeHtml(s.reason)}
+              </div>
+              <div class="small" style="margin-top:6px;">
+                <strong>Dosage:</strong> ${escapeHtml(s.dosage)}
+              </div>
+            </div>
+          `).join("")}
         </div>
+
         ${r.redFlags.length ? `
-        <div class="card" style="margin-top:14px;border-color:#FECACA;background:#FEF2F2;">
-          <div style="font-weight:700;color:#991B1B;">🚨 See a doctor immediately if you have:</div>
-          <ul style="margin:8px 0 0 18px;padding:0;color:#991B1B;">${r.redFlags.map((f) => `<li>${escapeHtml(f)}</li>`).join("")}</ul>
-        </div>` : ""}
+          <div class="card" style="margin-top:14px;border-color:#FECACA;background:#FEE2F2;">
+            <div style="font-weight:700;color:#991B1B;">
+              🚨 See a doctor immediately if you have:
+            </div>
+            <ul style="margin:8px 0 0 18px;padding:0;color:#991B1B;">
+              ${r.redFlags.map(f => `<li>${escapeHtml(f)}</li>`).join("")}
+            </ul>
+          </div>
+        ` : ""}
       `;
+
     } catch (e) {
-      $("#result").classList.remove("hidden");
-      $("#result").innerHTML = `<div class="alert alert-error">${escapeHtml(e.message)}</div>`;
-    } finally { $("#loading").style.display = "none"; }
+      $("#result").innerHTML = `
+        <div class="alert alert-error">${escapeHtml(e.message)}</div>
+      `;
+    } finally {
+      $("#loading").style.display = "none";
+      isLoading = false;
+      $("#suggestBtn").disabled = false;
+    }
   });
 })();
 </script>

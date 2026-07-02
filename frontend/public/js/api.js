@@ -1,5 +1,15 @@
+// ================= AI SAFETY LAYER =================
+const aiCache = new Map();
+let lastAiCall = 0;
+
+function canCallAI() {
+  const now = Date.now();
+  if (now - lastAiCall < 800) return false; // throttle 800ms
+  lastAiCall = now;
+  return true;
+}
 /* CureByMedi — shared API client (vanilla JS, no framework) */
-const API_BASE = "https://curebymedi.onrender.com/api";
+const API_BASE = "https://your-node-backend.onrender.com/api";
 const TOKEN_KEY = "cbm_token";
 const LANG_KEY = "cbm_lang";
 
@@ -66,7 +76,25 @@ const A = {
 
   // AI features
   checkInteractions: (medicineNames) => api("/ai/interactions", { method: "POST", body: { medicineNames } }),
-  suggestForSymptoms: (symptoms) => api("/ai/suggest", { method: "POST", body: { symptoms } }),
+  suggestForSymptoms: async (symptoms) => {
+  if (!symptoms || symptoms.length < 3) return null;
+
+  // throttle
+  if (!canCallAI()) return;
+
+  // cache
+  if (aiCache.has(symptoms)) {
+    return aiCache.get(symptoms);
+  }
+
+  const res = await api("/ai/suggest", {
+    method: "POST",
+    body: { symptoms }
+  });
+
+  aiCache.set(symptoms, res);
+  return res;
+},
 
   // admin (unchanged)
   adminStats: () => api("/admin/stats"),

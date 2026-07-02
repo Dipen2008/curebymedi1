@@ -10,14 +10,14 @@ import json
 import asyncio
 import logging
 import subprocess
+import base64
 from typing import Optional
 
 import httpx
 
-from PIL import Image
+from PIL import Image  
 
-from google import genai
-from google.genai import types
+from ai import ask_ai_text, ask_ai_image
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
@@ -35,8 +35,9 @@ NODE_BASE = os.environ.get(
     "https://curebymedi.onrender.com"
 )
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+NODE_HOST = os.environ.get("NODE_HOST", "0.0.0.0")
+NODE_PORT = int(os.environ.get("NODE_PORT", "3001"))
 
-client = genai.Client(api_key=GEMINI_API_KEY)
 
 _node_proc: Optional[subprocess.Popen] = None
 
@@ -102,9 +103,9 @@ app = FastAPI(title="CureByMedi AI Bridge")
 
 @app.on_event("startup")
 async def startup():
-    pass
 
-    # Wait until Node is alive
+    # Uncomment this if you want Python to start the Node backend
+    # _start_node()
 
     for _ in range(60):
 
@@ -115,19 +116,15 @@ async def startup():
                 r = await client_http.get(f"{NODE_BASE}/api/health")
 
                 if r.status_code == 200:
-
                     log.info("Node backend is ready")
-
                     return
 
         except Exception:
-
             pass
 
         await asyncio.sleep(1)
 
-    log.warning("Node backend not ready yet.")
-
+    log.warning("Node backend not ready.")
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -141,7 +138,6 @@ class ScanBody(BaseModel):
     image_base64: str
     mime: str = "image/jpeg"
 
-
 @app.post("/api/_python/scan")
 async def python_scan(body: ScanBody):
 
@@ -152,6 +148,7 @@ async def python_scan(body: ScanBody):
         )
 
     try:
+
 
         image_bytes = base64.b64decode(body.image_base64)
 
@@ -177,18 +174,11 @@ If the medicine name cannot be read:
 }
 """
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[
-                prompt,
-                image,
-            ],
-            config=types.GenerateContentConfig(
-                temperature=0.2
-            ),
+        text = ask_ai_image(
+            prompt=prompt,
+            image=image,
+            temperature=0.2,
         )
-
-        text = response.text.strip()
 
         start = text.find("{")
         end = text.rfind("}")
@@ -265,21 +255,16 @@ Rules:
 
     try:
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.3
-            ),
+        text = ask_ai_text(
+            prompt=prompt,
+            temperature=0.3,
         )
-
-        text = response.text.strip()
 
         start = text.find("{")
         end = text.rfind("}")
 
         if start == -1 or end == -1:
-            raise Exception("Invalid JSON returned by Gemini.")
+            raise Exception("Invalid JSON returned by AI.")
 
         data = json.loads(text[start:end + 1])
 
@@ -295,10 +280,13 @@ Rules:
 
     except Exception as e:
 
+        log.exception("Enrich endpoint failed")
+
         return JSONResponse(
             {"error": str(e)},
             status_code=500,
         )
+
     # ------------------------------------------------------------
 # AI DRUG INTERACTION CHECKER
 # ------------------------------------------------------------
@@ -317,10 +305,7 @@ async def python_interactions(body: InteractionsBody):
             status_code=500,
         )
 
-    language = "English"
-
-    if body.language == "hi":
-        language = "Hindi"
+    language = "Hindi" if body.language == "hi" else "English"
 
     prompt = f"""
 You are an experienced pharmacist.
@@ -349,8 +334,7 @@ Return ONLY valid JSON.
 
 Rules:
 
-riskLevel must be one of
-
+riskLevel must be one of:
 safe
 caution
 avoid
@@ -358,27 +342,21 @@ avoid
 Keep explanations short.
 
 Always finish advice with:
-
 Please consult your doctor.
 """
 
     try:
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.2
-            ),
+        text = ask_ai_text(
+            prompt=prompt,
+            temperature=0.2,
         )
-
-        text = response.text.strip()
 
         start = text.find("{")
         end = text.rfind("}")
 
         if start == -1 or end == -1:
-            raise Exception("Gemini returned invalid JSON.")
+            raise Exception("Invalid JSON returned by AI.")
 
         data = json.loads(text[start:end + 1])
 
@@ -407,10 +385,13 @@ Please consult your doctor.
 
     except Exception as e:
 
+        log.exception("Interaction endpoint failed")
+
         return JSONResponse(
             {"error": str(e)},
             status_code=500,
         )
+
    # ------------------------------------------------------------
 # AI SYMPTOM → MEDICINE SUGGESTIONS
 # ------------------------------------------------------------
@@ -429,10 +410,7 @@ async def python_suggest(body: SuggestBody):
             status_code=500,
         )
 
-    language = "English"
-
-    if body.language == "hi":
-        language = "Hindi"
+    language = "Hindi" if body.language == "hi" else "English"
 
     prompt = f"""
 You are an experienced pharmacist.
@@ -443,9 +421,9 @@ The user reports these symptoms:
 
 Reply ONLY in {language}.
 
-Suggest ONLY common over-the-counter medicines that are commonly available.
+Suggest ONLY common over-the-counter medicines.
 
-Never recommend antibiotics, narcotics or prescription-only medicines.
+Never recommend antibiotics, narcotics or prescription medicines.
 
 Return ONLY valid JSON.
 
@@ -461,33 +439,20 @@ Return ONLY valid JSON.
     ],
     "redFlags":[]
 }}
-
-Rules:
-
-- Suggest between 2 and 4 medicines.
-- Use simple language.
-- Keep every answer short.
-- If symptoms appear serious, mention that immediate medical attention is needed.
-- Always recommend consulting a doctor if symptoms persist.
 """
 
     try:
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.4
-            ),
+        text = ask_ai_text(
+            prompt=prompt,
+            temperature=0.4,
         )
-
-        text = response.text.strip()
 
         start = text.find("{")
         end = text.rfind("}")
 
         if start == -1 or end == -1:
-            raise Exception("Gemini returned invalid JSON.")
+            raise Exception("Invalid JSON returned by AI.")
 
         data = json.loads(text[start:end + 1])
 
@@ -512,10 +477,12 @@ Rules:
 
     except Exception as e:
 
+        log.exception("Suggest endpoint failed")
+
         return JSONResponse(
             {"error": str(e)},
             status_code=500,
-        ) 
+        )
     # ------------------------------------------------------------
 # PROXY ALL OTHER REQUESTS TO NODE.JS
 # ------------------------------------------------------------
