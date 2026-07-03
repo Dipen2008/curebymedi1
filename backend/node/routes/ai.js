@@ -114,14 +114,21 @@ router.post("/suggest", requireAuth, async (req, res) => {
 
     res.json(data);
 
-  } catch (err) {
+ } catch (err) {
 
-    res.status(503).json({
-      detail: err.message,
-    });
+  console.error("=================================");
+  console.error("PYTHON FETCH FAILED");
+  console.error("URL:", `${PY_PROXY_BASE}/api/_python/suggest`);
+  console.error(err);
+  console.error("=================================");
 
-  }
+  return res.status(503).json({
+    detail: err.message,
+    url: `${PY_PROXY_BASE}/api/_python/suggest`,
+    error: String(err),
+  });
 
+}
 });
 
 module.exports = router;
