@@ -3,7 +3,7 @@
  * POST /api/ai/interactions
  * POST /api/ai/suggest
  */
-
+const axios = require("axios");
 const router = require("express").Router();
 const Medicine = require("../models/Medicine");
 const { requireAuth } = require("../middleware/auth");
@@ -15,43 +15,37 @@ console.log("======================================");
 console.log("PYTHON_PROXY_URL =", PY_PROXY_BASE);
 console.log("======================================");
 
-const PYTHON_TIMEOUT = 10000;
-
 async function callPython(endpoint, body) {
+
   console.log("Calling:", `${PY_PROXY_BASE}${endpoint}`);
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), PYTHON_TIMEOUT);
-
   try {
-    const response = await fetch(`${PY_PROXY_BASE}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
 
-    const text = await response.text();
+    const response = await axios.post(
+      `${PY_PROXY_BASE}${endpoint}`,
+      body,
+      {
+        timeout: 30000,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     console.log("Python status:", response.status);
-    console.log("Python body:", text);
+    console.log("Python body:", JSON.stringify(response.data));
 
-    if (!response.ok) {
-      throw new Error(text);
-    }
+    return response.data;
 
-    return JSON.parse(text);
   } catch (err) {
+
     console.error("========== PYTHON REQUEST FAILED ==========");
-    console.error(err);
-    console.error("Message:", err.message);
-    console.error("Cause:", err.cause);
+    console.error(err.response?.status);
+    console.error(err.response?.data);
+    console.error(err.message);
     console.error("===========================================");
+
     throw err;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
