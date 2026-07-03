@@ -6,22 +6,32 @@ from google.genai import types
 
 from groq import Groq
 from openai import OpenAI
+import httpx
 
 log = logging.getLogger("AI")
 
-# -----------------------------
-# Model
-# -----------------------------
+# ----------------------------------------------------
+# Models
+# ----------------------------------------------------
+
+GEMINI_MODEL = os.getenv(
+    "GEMINI_MODEL",
+    "gemini-2.5-flash",
+)
+
+GROQ_MODEL = os.getenv(
+    "GROQ_MODEL",
+    "llama-3.3-70b-versatile",
+)
 
 OPENROUTER_MODEL = os.getenv(
     "OPENROUTER_MODEL",
-    "qwen/qwen3-32b"
+    "qwen/qwen3-32b",
 )
 
-
-# -----------------------------
-# Client creators (Lazy loading)
-# -----------------------------
+# ----------------------------------------------------
+# Lazy Clients
+# ----------------------------------------------------
 
 def get_gemini():
     return genai.Client(
@@ -31,20 +41,24 @@ def get_gemini():
 
 def get_groq():
     return Groq(
-        api_key=os.getenv("GROQ_API_KEY")
+        api_key=os.getenv("GROQ_API_KEY"),
+        timeout=30.0,
     )
 
 
 def get_openrouter():
+
+    client = httpx.Client(timeout=30.0)
+
     return OpenAI(
         api_key=os.getenv("OPENROUTER_API_KEY"),
         base_url="https://openrouter.ai/api/v1",
+        http_client=client,
     )
 
-
-# -----------------------------
+# ----------------------------------------------------
 # Gemini
-# -----------------------------
+# ----------------------------------------------------
 
 def _gemini(prompt, image=None, temperature=0.3):
 
@@ -53,106 +67,115 @@ def _gemini(prompt, image=None, temperature=0.3):
     if image is None:
 
         response = gemini.models.generate_content(
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=temperature
+                temperature=temperature,
             ),
         )
 
     else:
 
         response = gemini.models.generate_content(
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             contents=[
                 prompt,
                 image,
             ],
             config=types.GenerateContentConfig(
-                temperature=temperature
+                temperature=temperature,
             ),
         )
 
     return response.text.strip()
 
-
-# -----------------------------
+# ----------------------------------------------------
 # Groq
-# -----------------------------
+# ----------------------------------------------------
 
 def _groq(prompt):
 
     groq = get_groq()
 
     response = groq.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=GROQ_MODEL,
+        temperature=0.3,
         messages=[
             {
                 "role": "user",
                 "content": prompt,
             }
         ],
-        temperature=0.3,
     )
 
     return response.choices[0].message.content.strip()
 
-
-# -----------------------------
+# ----------------------------------------------------
 # OpenRouter
-# -----------------------------
+# ----------------------------------------------------
 
 def _openrouter(prompt):
 
-    openrouter = get_openrouter()
+    client = get_openrouter()
 
-    response = openrouter.chat.completions.create(
+    response = client.chat.completions.create(
         model=OPENROUTER_MODEL,
+        temperature=0.3,
         messages=[
             {
                 "role": "user",
                 "content": prompt,
             }
         ],
-        temperature=0.3,
     )
 
     return response.choices[0].message.content.strip()
 
-
-# -----------------------------
+# ----------------------------------------------------
 # Main AI
-# -----------------------------
+# ----------------------------------------------------
 
 def ask_ai(prompt, image=None, temperature=0.3):
+
+    # ---------------- Gemini ----------------
 
     try:
         log.info("Using Gemini")
         return _gemini(prompt, image, temperature)
 
     except Exception as e:
-        log.warning(f"Gemini failed: {e}")
+        log.warning("Gemini failed: %s", e)
+
+    # ---------------- Groq ----------------
 
     if image is None:
+
         try:
             log.info("Using Groq")
             return _groq(prompt)
 
         except Exception as e:
-            log.warning(f"Groq failed: {e}")
+            log.warning("Groq failed: %s", e)
+
+    # ---------------- OpenRouter ----------------
 
     if image is None:
+
         try:
             log.info("Using OpenRouter")
             return _openrouter(prompt)
 
         except Exception as e:
-            log.warning(f"OpenRouter failed: {e}")
+            log.warning("OpenRouter failed: %s", e)
 
     raise Exception("All AI providers are unavailable.")
 
+# ----------------------------------------------------
+# Public API
+# ----------------------------------------------------
 
 def ask_ai_text(prompt, temperature=0.3):
+
     return ask_ai(
         prompt=prompt,
         image=None,
@@ -161,6 +184,7 @@ def ask_ai_text(prompt, temperature=0.3):
 
 
 def ask_ai_image(prompt, image, temperature=0.2):
+
     return _gemini(
         prompt,
         image=image,
