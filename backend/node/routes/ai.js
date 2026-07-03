@@ -1,11 +1,7 @@
 /**
  * AI-powered features:
- *  POST /api/interactions
- *  POST /api/suggest
- *
- * Calls Python sidecar:
- *  /api/_python/interactions
- *  /api/_python/suggest
+ * POST /api/ai/interactions
+ * POST /api/ai/suggest
  */
 
 const router = require("express").Router();
@@ -15,148 +11,117 @@ const { requireAuth } = require("../middleware/auth");
 const PY_PROXY_BASE =
   process.env.PYTHON_PROXY_URL || "http://127.0.0.1:8000";
 
-const PYTHON_TIMEOUT = 10000; // 10 seconds (safer for production)
+console.log("======================================");
+console.log("PYTHON_PROXY_URL =", PY_PROXY_BASE);
+console.log("======================================");
 
-// -----------------------------
-// SAFE FETCH WRAPPER
-// -----------------------------
-async function safePythonCall(url, payload, signal) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal,
-  });
+const PYTHON_TIMEOUT = 10000;
 
-  let data = null;
+async function callPython(endpoint, body) {
+  console.log("Calling:", `${PY_PROXY_BASE}${endpoint}`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PYTHON_TIMEOUT);
 
   try {
-    data = await res.json();
-  } catch (e) {
-    console.error("❌ Invalid JSON from Python:", e);
-    throw new Error("Invalid response from AI service");
-  }
+    const response = await fetch(`${PY_PROXY_BASE}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
 
-  if (!res.ok) {
-    console.error("❌ Python error response:", data);
-    throw new Error(data?.error || "AI service returned error");
-  }
+    const text = await response.text();
 
-  return data;
+    console.log("Python status:", response.status);
+    console.log("Python body:", text);
+
+    if (!response.ok) {
+      throw new Error(text);
+    }
+
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("========== PYTHON REQUEST FAILED ==========");
+    console.error(err);
+    console.error("Message:", err.message);
+    console.error("Cause:", err.cause);
+    console.error("===========================================");
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
-// -----------------------------
-// INTERACTIONS
-// -----------------------------
+/* -------------------------------------------------- */
+/* INTERACTIONS */
+/* -------------------------------------------------- */
+
 router.post("/interactions", requireAuth, async (req, res) => {
   try {
     let names = [];
 
-    if (Array.isArray(req.body.medicineNames) && req.body.medicineNames.length) {
-      names = req.body.medicineNames.map(String).filter(Boolean);
-    } else if (Array.isArray(req.body.medicineIds) && req.body.medicineIds.length) {
+    if (Array.isArray(req.body.medicineNames)) {
+      names = req.body.medicineNames;
+    } else if (Array.isArray(req.body.medicineIds)) {
       const docs = await Medicine.find({
         _id: { $in: req.body.medicineIds },
       }).lean();
 
-      names = docs.map((d) =>
-        `${d.name} (${d.composition || ""})`.trim()
+      names = docs.map(
+        d => `${d.name} (${d.composition || ""})`
       );
     }
 
-    if (names.length < 2) {
-      return res.status(400).json({
-        detail: "Provide at least 2 medicines",
-      });
-    }
+    const data = await callPython(
+      "/api/_python/interactions",
+      {
+        medicines: names,
+        language: req.user?.language || "en",
+      }
+    );
 
-    if (names.length > 6) {
-      return res.status(400).json({
-        detail: "Max 6 medicines at a time",
-      });
-    }
+    res.json(data);
 
-    const lang = req.user?.language || "en";
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), PYTHON_TIMEOUT);
-
-    try {
-      const data = await safePythonCall(
-        `${PY_PROXY_BASE}/api/_python/interactions`,
-        {
-          medicines: names,
-          language: lang,
-        },
-        controller.signal
-      );
-
-      return res.json(data);
-    } catch (err) {
-      console.error("❌ INTERACTIONS ERROR:", err.message);
-      return res.status(503).json({
-        detail: "AI service slow or unavailable. Please try again.",
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch (e) {
-    console.error("❌ SERVER ERROR:", e);
-    return res.status(500).json({
-      detail: "Internal server error",
+  } catch (err) {
+    res.status(503).json({
+      detail: err.message,
     });
   }
 });
 
-// -----------------------------
-// SUGGEST (MAIN)
-// -----------------------------
+/* -------------------------------------------------- */
+/* SUGGEST */
+/* -------------------------------------------------- */
+
 router.post("/suggest", requireAuth, async (req, res) => {
+
   try {
-    const symptoms = String(req.body.symptoms || "").trim().slice(0, 400);
-    if (symptoms.length < 3) {
-      return res.status(400).json({ detail: "Enter symptoms" });
-    }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const symptoms = String(
+      req.body.symptoms || ""
+    ).trim();
 
-    let r;
+    const data = await callPython(
+      "/api/_python/suggest",
+      {
+        symptoms,
+        language: req.user?.language || "en",
+      }
+    );
 
-    try {
-      r = await fetch(`${PY_PROXY_BASE}/api/_python/suggest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          symptoms,
-          language: req.user?.language || "en",
-        }),
-        signal: controller.signal,
-      });
-    } catch (err) {
-      return res.status(503).json({
-        detail: "Python AI not responding (network issue)",
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
+    res.json(data);
 
-    if (!r.ok) {
-      const text = await r.text();
-      return res.status(502).json({
-        detail: "Python error",
-        raw: text,
-      });
-    }
+  } catch (err) {
 
-    const data = await r.json();
-    return res.json(data);
-
-  } catch (e) {
-    return res.status(500).json({
-      detail: "Server crash in suggest route",
+    res.status(503).json({
+      detail: err.message,
     });
+
   }
+
 });
 
 module.exports = router;
