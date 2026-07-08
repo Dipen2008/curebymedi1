@@ -7,6 +7,8 @@ const axios = require("axios");
 const router = require("express").Router();
 const Medicine = require("../models/Medicine");
 const { requireAuth } = require("../middleware/auth");
+const aiCache = new Map();
+const CACHE_TIME = 5 * 60 * 1000; // 5 minutes
 
 const PY_PROXY_BASE =
   process.env.PYTHON_PROXY_URL || "http://127.0.0.1:8000";
@@ -17,36 +19,40 @@ console.log("======================================");
 
 async function callPython(endpoint, body) {
 
-  console.log("Calling:", `${PY_PROXY_BASE}${endpoint}`);
+  const url = `${PY_PROXY_BASE}${endpoint}`;
 
-  try {
+  const MAX_RETRIES = 3;
 
-    const response = await axios.post(
-      `${PY_PROXY_BASE}${endpoint}`,
-      body,
-      {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+
+    try {
+
+      console.log(`Attempt ${attempt}: ${url}`);
+
+      const response = await axios.post(url, body, {
         timeout: 30000,
         headers: {
           "Content-Type": "application/json",
         },
+      });
+
+      console.log("Python status:", response.status);
+
+      return response.data;
+
+    } catch (err) {
+
+      console.log(`Attempt ${attempt} failed`);
+
+      if (attempt === MAX_RETRIES) {
+        throw err;
       }
-    );
 
-    console.log("Python status:", response.status);
-    console.log("Python body:", JSON.stringify(response.data));
+      await new Promise(r => setTimeout(r, 2000));
+    }
 
-    return response.data;
-
-  } catch (err) {
-
-    console.error("========== PYTHON REQUEST FAILED ==========");
-    console.error(err.response?.status);
-    console.error(err.response?.data);
-    console.error(err.message);
-    console.error("===========================================");
-
-    throw err;
   }
+
 }
 
 /* -------------------------------------------------- */
@@ -89,15 +95,23 @@ router.post("/interactions", requireAuth, async (req, res) => {
 /* -------------------------------------------------- */
 /* SUGGEST */
 /* -------------------------------------------------- */
-
 router.post("/suggest", requireAuth, async (req, res) => {
 
   try {
 
-    const symptoms = String(
-      req.body.symptoms || ""
-    ).trim();
+    const symptoms = String(req.body.symptoms || "")
+      .trim()
+      .toLowerCase();
 
+    // Check cache
+    const cached = aiCache.get(symptoms);
+
+    if (cached && Date.now() - cached.time < CACHE_TIME) {
+      console.log("Returning cached AI response");
+      return res.json(cached.data);
+    }
+
+    // Call Python
     const data = await callPython(
       "/api/_python/suggest",
       {
@@ -106,21 +120,27 @@ router.post("/suggest", requireAuth, async (req, res) => {
       }
     );
 
-    res.json(data);
+    // Save to cache
+    aiCache.set(symptoms, {
+      data,
+      time: Date.now(),
+    });
 
- } catch (err) {
+    return res.json(data);
 
-  console.error("=================================");
-  console.error("PYTHON FETCH FAILED");
-  console.error("URL:", `${PY_PROXY_BASE}/api/_python/suggest`);
-  console.error(err);
-  console.error("=================================");
+  } catch (err) {
 
-  return res.status(503).json({
-    detail: err.message,
-    url: `${PY_PROXY_BASE}/api/_python/suggest`,
-    error: String(err),
-  });
+    console.error("=================================");
+    console.error("PYTHON FETCH FAILED");
+    console.error("URL:", `${PY_PROXY_BASE}/api/_python/suggest`);
+    console.error(err);
+    console.error("=================================");
+
+    return res.status(503).json({
+      success: false,
+      message: "AI is waking up. Automatically retry in a few seconds.",
+    });
+  
 
 }
 });

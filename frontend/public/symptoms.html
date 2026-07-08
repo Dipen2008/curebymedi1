@@ -59,19 +59,44 @@ window.quick = (t) => {
     isLoading = true;
     $("#suggestBtn").disabled = true;
 
-    $("#loading").style.display = "block";
-    $("#result").classList.remove("hidden");
+   $("#loading").style.display = "block";
+$("#result").classList.remove("hidden");
 
-    // 🚀 FIX 2: instant feedback UI
-    $("#result").innerHTML = `
-      <div class="card" style="display:flex;align-items:center;gap:10px;">
-        <div class="spinner"></div>
-        <div>
-          <div style="font-weight:600;">Analyzing symptoms...</div>
-          <div class="small muted">Checking possible conditions and medicines</div>
-        </div>
-      </div>
-    `;
+const steps = [
+  "🧠 Analyzing symptoms...",
+  "💊 Checking medicines...",
+  "⚕ Looking for possible conditions...",
+  "🔬 Checking interactions...",
+  "📖 Reading medicine database...",
+  "🤖 Asking AI...",
+  "✅ Preparing recommendations..."
+];
+
+let step = 0;
+
+$("#result").innerHTML = `
+<div class="card" id="aiLoadingCard" style="display:flex;align-items:center;gap:12px;">
+  <div class="spinner"></div>
+  <div>
+    <div id="loadingTitle" style="font-weight:600;">
+      ${steps[0]}
+    </div>
+    <div class="small muted">
+      Please wait...
+    </div>
+  </div>
+</div>
+`;
+
+const loadingInterval = setInterval(() => {
+
+  step++;
+
+  if (step < steps.length) {
+    document.getElementById("loadingTitle").innerText = steps[step];
+  }
+
+}, 2000);
 
     try {
       // ⏱️ API CALL
@@ -134,10 +159,13 @@ window.quick = (t) => {
   console.log("AdSense not ready yet.");
 }
     } finally {
-      $("#loading").style.display = "none";
-      isLoading = false;
-      $("#suggestBtn").disabled = false;
-    }
+
+    clearInterval(loadingInterval);
+
+    $("#loading").style.display = "none";
+    isLoading = false;
+    $("#suggestBtn").disabled = false;
+}
   });
 })();
 </script>

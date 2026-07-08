@@ -19,25 +19,66 @@ function getLang() { return localStorage.getItem(LANG_KEY) || "en"; }
 function setLang(l) { localStorage.setItem(LANG_KEY, l); document.documentElement.lang = l; }
 
 async function api(path, { method = "GET", body, formData, headers = {} } = {}) {
+
   const token = getToken();
-  const init = { method, credentials: "include", headers: { ...headers } };
+
+  const init = {
+    method,
+    credentials: "include",
+    headers: { ...headers }
+  };
+
   if (formData) {
     init.body = formData;
   } else if (body !== undefined) {
     init.headers["Content-Type"] = "application/json";
     init.body = JSON.stringify(body);
   }
-  if (token) init.headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(API_BASE + path, init);
+
+  if (token) {
+    init.headers.Authorization = `Bearer ${token}`;
+  }
+
+  let res;
+
+  // Retry automatically if backend returns 503
+  for (let attempt = 1; attempt <= 3; attempt++) {
+
+    res = await fetch(API_BASE + path, init);
+
+    if (res.status !== 503) {
+      break;
+    }
+
+    console.log(`AI waking up... Retry ${attempt}/3`);
+
+    await new Promise(resolve => setTimeout(resolve, 2500));
+  }
+
   const ct = res.headers.get("content-type") || "";
-  const payload = ct.includes("application/json") ? await res.json().catch(() => ({})) : await res.text();
+
+  const payload = ct.includes("application/json")
+      ? await res.json().catch(() => ({}))
+      : await res.text();
+
   if (!res.ok) {
-    const detail = (payload && payload.detail) || payload || res.statusText;
-    const msg = typeof detail === "string" ? detail : JSON.stringify(detail);
+
+    const detail =
+      (payload && payload.message) ||
+      (payload && payload.detail) ||
+      payload ||
+      res.statusText;
+
+    const msg =
+      typeof detail === "string"
+        ? detail
+        : JSON.stringify(detail);
+
     const err = new Error(msg);
     err.status = res.status;
     throw err;
   }
+
   return payload;
 }
 
