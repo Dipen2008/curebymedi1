@@ -574,11 +574,17 @@ async def proxy(full_path: str, request: Request):
 
     except Exception as e:
 
-        log.exception(e)
+        import traceback
 
-        return JSONResponse(
-            {
-                "detail": str(e),
-            },
-            status_code=500,
-        )
+    traceback.print_exc()
+
+    log.exception("Suggest endpoint failed")
+
+    return JSONResponse(
+        {
+            "error": str(e),
+            "type": type(e).__name__,
+        },
+        status_code=500,
+    )
+        

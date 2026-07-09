@@ -144,8 +144,9 @@ def ask_ai(prompt, image=None, temperature=0.3):
         return _gemini(prompt, image, temperature)
 
     except Exception as e:
-        log.warning("Gemini failed: %s", e)
-
+        import traceback
+    traceback.print_exc()
+    log.exception("Gemini failed")
     # ---------------- Groq ----------------
 
     if image is None:
@@ -155,8 +156,9 @@ def ask_ai(prompt, image=None, temperature=0.3):
             return _groq(prompt)
 
         except Exception as e:
-            log.warning("Groq failed: %s", e)
-
+             import traceback
+    traceback.print_exc()
+    log.exception("Groq failed")
     # ---------------- OpenRouter ----------------
 
     if image is None:
@@ -166,7 +168,10 @@ def ask_ai(prompt, image=None, temperature=0.3):
             return _openrouter(prompt)
 
         except Exception as e:
-            log.warning("OpenRouter failed: %s", e)
+
+             import traceback
+    traceback.print_exc()
+    log.exception("OpenRouter failed")
 
     raise Exception("All AI providers are unavailable.")
 
